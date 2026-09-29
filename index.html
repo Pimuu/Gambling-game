@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pocket Casino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one narrow column — header with balance, bet bar, game tabs, one table at a time */
+:root{
+  --bg:#f5f6f3; --surface:#ffffff; --ink:#1b201d; --muted:#68716a; --line:#dce1db;
+  --accent:#1d6a48; --accent-soft:#e3efe8; --red:#c23a2c; --good:#1d7a4a; --bad:#b3261e;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111412; --surface:#191e1b; --ink:#e7ebe7; --muted:#98a29b; --line:#2b322e;
+  --accent:#5dbb8c; --accent-soft:#1d2b24; --red:#ee6d5f; --good:#6fcf97; --bad:#f28b82; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111412; --surface:#191e1b; --ink:#e7ebe7; --muted:#98a29b; --line:#2b322e;
+  --accent:#5dbb8c; --accent-soft:#1d2b24; --red:#ee6d5f; --good:#6fcf97; --bad:#f28b82; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--display);font-size:1rem;line-height:1.5}
+.wrap{max-width:34rem;margin:0 auto;padding:2.5rem 16px 3rem;display:grid;gap:1.5rem}
+header{display:flex;justify-content:space-between;align-items:end;gap:1rem;flex-wrap:wrap}
+h1{margin:0;font-size:1.75rem;font-weight:800;letter-spacing:-.02em;line-height:1}
+.label{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.balance{text-align:right}
+.balance b{display:block;font-family:var(--mono);font-size:1.75rem;line-height:1.1;font-variant-numeric:tabular-nums}
+
+.bar{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+input{font:inherit;font-family:var(--mono);width:6.5rem;padding:.5rem .6rem;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
+button{font:inherit;font-weight:600;padding:.5rem .9rem;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:focus-visible,input:focus-visible,.card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.chip{font-family:var(--mono);font-size:.85rem;padding:.4rem .6rem}
+
+nav{display:flex;border-bottom:1px solid var(--line);overflow-x:auto}
+nav button{border:0;border-bottom:2px solid transparent;border-radius:0;background:none;padding:.6rem .8rem;color:var(--muted);white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+
+.table{display:grid;gap:1rem;min-height:15rem}
+.row{display:flex;gap:.5rem;flex-wrap:wrap;min-height:4.6rem;align-items:center}
+.card{width:3.3rem;height:4.6rem;border:1px solid var(--line);border-radius:6px;background:var(--surface);display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:1.05rem;transition:transform .15s}
+.card.red{color:var(--red)}
+.card.back{background:repeating-linear-gradient(45deg,var(--accent-soft) 0 6px,var(--surface) 6px 12px)}
+.card.slot{border-style:dashed;background:none}
+.card.pick{cursor:pointer}
+.card.swap{transform:translateY(-8px);border-color:var(--accent);opacity:.55}
+.hint{font-size:.85rem;color:var(--muted);margin:0}
+.big{width:4.6rem;height:4.6rem;border-radius:12px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;font-family:var(--mono);font-size:2rem;font-weight:700}
+.ball.r{background:var(--red);color:var(--bg);border-color:var(--red)}
+.ball.b{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.ball.g{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.pay{font-family:var(--mono);font-size:.75rem;color:var(--muted)}
+
+#msg{min-height:1.5rem;margin:0;font-weight:600}
+#msg.good{color:var(--good)} #msg.bad{color:var(--bad)}
+footer{border-top:1px solid var(--line);padding-top:1rem}
+@media (prefers-reduced-motion:reduce){.card{transition:none}}
+body{margin:0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Pocket Casino</h1>
+    <div class="balance"><span class="label">Balance</span><b id="balance">$100</b></div>
+  </header>
+
+  <div class="bar">
+    <span class="label">Bet $</span>
+    <input id="bet" type="number" min="1" value="10" aria-label="Bet amount">
+    <button class="chip" data-chip="5">5</button>
+    <button class="chip" data-chip="25">25</button>
+    <button class="chip" data-chip="max">Max</button>
+  </div>
+
+  <nav role="tablist">
+    <button role="tab" data-game="poker" aria-selected="true">Poker</button>
+    <button role="tab" data-game="dice" aria-selected="false">Roll a Dice</button>
+    <button role="tab" data-game="roulette" aria-selected="false">Roulette</button>
+    <button role="tab" data-game="blackjack" aria-selected="false">Blackjack</button>
+  </nav>
+
+  <!-- Poker -->
+  <section class="table" id="g-poker">
+    <div><div class="label">Dealer</div><div class="row" id="pk-dealer"></div></div>
+    <div><div class="label">You</div><div class="row" id="pk-player"></div></div>
+    <p class="hint" id="pk-hint">5-card draw. Deal, tap cards to replace, then draw. Pays 1:1.</p>
+    <div class="bar"><button class="primary" id="pk-deal">Deal</button><button id="pk-draw" disabled>Draw</button></div>
+  </section>
+
+  <!-- Dice -->
+  <section class="table" id="g-dice" hidden>
+    <div class="row"><div class="big" id="die">?</div></div>
+    <p class="hint">Guess the number. Pays 5:1.</p>
+    <div class="bar" id="dice-guesses"></div>
+  </section>
+
+  <!-- Roulette -->
+  <section class="table" id="g-roulette" hidden>
+    <div class="row"><div class="big ball" id="ball">–</div></div>
+    <p class="hint">Single-zero wheel. 0 loses red/black and odd/even bets.</p>
+    <div class="bar">
+      <button data-rl="red">Red</button><button data-rl="black">Black</button>
+      <button data-rl="odd">Odd</button><button data-rl="even">Even</button>
+      <span class="pay">1:1</span>
+    </div>
+    <div class="bar">
+      <input id="rl-num" type="number" min="0" max="36" value="17" aria-label="Number 0 to 36">
+      <button data-rl="number">Bet on number</button>
+      <span class="pay">35:1</span>
+    </div>
+  </section>
+
+  <!-- Blackjack -->
+  <section class="table" id="g-blackjack" hidden>
+    <div><div class="label">Dealer <span id="bj-dv"></span></div><div class="row" id="bj-dealer"></div></div>
+    <div><div class="label">You <span id="bj-pv"></span></div><div class="row" id="bj-player"></div></div>
+    <p class="hint">Dealer hits to 17. Blackjack pays 3:2.</p>
+    <div class="bar"><button class="primary" id="bj-deal">Deal</button><button id="bj-hit" disabled>Hit</button><button id="bj-stand" disabled>Stand</button></div>
+  </section>
+
+  <p id="msg" role="status">Welcome to our casino! Pick a game.</p>
+
+  <footer class="bar">
+    <span class="label">New bankroll $</span>
+    <input id="bankroll" type="number" min="1" value="100" aria-label="New bankroll">
+    <button id="restart">Start over</button>
+  </footer>
+</div>
+
+<script>
+const RANKS=["2","3","4","5","6","7","8","9","10","J","Q","K","A"], SUITS=["♠","♥","♦","♣"];
+const RED=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+const HAND_NAMES=["High Card","One Pair","Two Pair","Three of a Kind","Straight","Flush","Full House","Four of a Kind","Straight Flush"];
+const $=id=>document.getElementById(id);
+let balance=100, current="poker", busy=false;
+
+/* ---------- helpers ---------- */
+function newDeck(){
+  const d=[]; for(const r of RANKS) for(const s of SUITS) d.push({r,s});
+  for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [d[i],d[j]]=[d[j],d[i]];}
+  return d;
+}
+function cardEl(c,opts={}){
+  const el=document.createElement(opts.pick?"button":"div");
+  el.className="card"+(c?"":" back")+(c&&(c.s==="♥"||c.s==="♦")?" red":"");
+  if(c) el.textContent=c.r+c.s;
+  if(opts.pick){el.classList.add("pick");el.type="button";}
+  return el;
+}
+function slots(row,n){row.replaceChildren(...Array.from({length:n},()=>{const d=document.createElement("div");d.className="card slot";return d;}));}
+function say(text,kind=""){ $("msg").textContent=text; $("msg").className=kind; }
+function show(){ $("balance").textContent="$"+balance; $("bet").max=balance; }
+function getBet(){
+  const b=Number($("bet").value);
+  if(!Number.isInteger(b)||b<1||b>balance){ say(balance>0?`Bet must be a whole number between $1 and $${balance}.`:"You're out of money. Start over to buy more chips.","bad"); return null; }
+  return b;
+}
+function settle(delta,text){
+  balance+=delta; show();
+  if(balance<=0) text+=" You're out of money. Start over to buy more chips.";
+  say(text, delta>0?"good":delta<0?"bad":"");
+}
+function lock(on){
+  busy=on;
+  document.querySelectorAll("nav button").forEach(b=>b.disabled=on&&b.dataset.game!==current);
+  $("bet").disabled=on; $("restart").disabled=on;
+  document.querySelectorAll("[data-chip]").forEach(b=>b.disabled=on);
+}
+
+/* ---------- tabs & bet chips ---------- */
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+  if(busy) return;
+  current=b.dataset.game;
+  document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected",x===b));
+  document.querySelectorAll(".table").forEach(t=>t.hidden=t.id!=="g-"+current);
+  say(`Welcome to ${b.textContent}!`);
+});
+document.querySelectorAll("[data-chip]").forEach(b=>b.onclick=()=>{
+  $("bet").value=b.dataset.chip==="max"?balance:Math.min(Number(b.dataset.chip),balance);
+});
+$("restart").onclick=()=>{
+  const v=Number($("bankroll").value);
+  if(!Number.isInteger(v)||v<1){ say("Enter a whole number above $0 for your bankroll.","bad"); return; }
+  balance=v; show(); $("bet").value=Math.min(10,v); say(`You bought $${v} in chips. Good luck!`);
+};
+
+/* ---------- Poker ---------- */
+function pokerScore(hand){
+  const values=hand.map(c=>RANKS.indexOf(c.r)+2).sort((a,b)=>b-a);
+  const counts=new Map(); values.forEach(v=>counts.set(v,(counts.get(v)||0)+1));
+  let ordered=[...counts.entries()].sort((a,b)=>b[1]-a[1]||b[0]-a[0]).map(e=>e[0]);
+  const shape=[...counts.values()].sort((a,b)=>b-a).join(",");
+  const flush=new Set(hand.map(c=>c.s)).size===1;
+  let straight=counts.size===5&&values[0]-values[4]===4;
+  if(values.join()==="14,5,4,3,2"){straight=true;ordered=[5,4,3,2,1];}
+  const cat= straight&&flush?8 : shape==="4,1"?7 : shape==="3,2"?6 : flush?5 : straight?4 :
+             shape==="3,1,1"?3 : shape==="2,2,1"?2 : shape==="2,1,1,1"?1 : 0;
+  return [cat,...ordered];
+}
+function compare(a,b){ for(let i=0;i<a.length;i++) if(a[i]!==b[i]) return a[i]-b[i]; return 0; }
+const pk={};
+function pkRender(reveal){
+  $("pk-player").replaceChildren(...pk.player.map((c,i)=>{
+    const el=cardEl(c,{pick:!reveal});
+    if(!reveal){
+      el.setAttribute("aria-pressed",pk.swap.has(i));
+      if(pk.swap.has(i)) el.classList.add("swap");
+      el.onclick=()=>{ pk.swap.has(i)?pk.swap.delete(i):pk.swap.add(i); pkRender(false); };
+    }
+    return el;
+  }));
+  $("pk-dealer").replaceChildren(...pk.dealer.map(c=>cardEl(reveal?c:null)));
+}
+$("pk-deal").onclick=()=>{
+  const bet=getBet(); if(bet===null) return;
+  Object.assign(pk,{bet,deck:newDeck(),swap:new Set()});
+  pk.player=pk.deck.splice(0,5); pk.dealer=pk.deck.splice(0,5);
+  pkRender(false); lock(true);
+  $("pk-deal").disabled=true; $("pk-draw").disabled=false;
+  $("pk-hint").textContent="Tap the cards you want to replace, then Draw.";
+  say(`You bet $${bet}.`);
+};
+$("pk-draw").onclick=()=>{
+  pk.swap.forEach(i=>pk.player[i]=pk.deck.pop());
+  pkRender(true);
+  const p=pokerScore(pk.player), d=pokerScore(pk.dealer), r=compare(p,d);
+  $("pk-hint").textContent=`You: ${HAND_NAMES[p[0]]} · Dealer: ${HAND_NAMES[d[0]]}`;
+  $("pk-deal").disabled=false; $("pk-draw").disabled=true; lock(false);
+  if(r>0) settle(pk.bet,`You win $${pk.bet}!`);
+  else if(r<0) settle(-pk.bet,`You lose $${pk.bet}.`);
+  else settle(0,"It's a tie. Your bet is returned.");
+};
+
+/* ---------- Roll a Dice ---------- */
+for(let n=1;n<=6;n++){
+  const b=document.createElement("button"); b.textContent=n; b.className="chip";
+  b.onclick=()=>{
+    const bet=getBet(); if(bet===null) return;
+    const roll=1+Math.floor(Math.random()*6);
+    $("die").textContent=roll;
+    if(roll===n) settle(bet*5,`The dice shows ${roll}. Correct! You win $${bet*5}!`);
+    else settle(-bet,`The dice shows ${roll}. Wrong guess. You lose $${bet}.`);
+  };
+  $("dice-guesses").append(b);
+}
+
+/* ---------- Roulette ---------- */
+document.querySelectorAll("[data-rl]").forEach(b=>b.onclick=()=>{
+  const bet=getBet(); if(bet===null) return;
+  const kind=b.dataset.rl; let pick=null;
+  if(kind==="number"){
+    pick=Number($("rl-num").value);
+    if(!Number.isInteger(pick)||pick<0||pick>36){ say("Pick a number from 0 to 36.","bad"); return; }
+  }
+  const spin=Math.floor(Math.random()*37);
+  const color=spin===0?"green":RED.has(spin)?"red":"black";
+  const ball=$("ball"); ball.textContent=spin; ball.className="big ball "+color[0];
+  let won,payout=bet;
+  if(kind==="number"){ won=spin===pick; payout=bet*35; }
+  else if(kind==="red"||kind==="black") won=color===kind;
+  else won=spin!==0&&(spin%2===1)===(kind==="odd");
+  const head=`The ball lands on ${spin} (${color}). `;
+  won?settle(payout,head+`You win $${payout}!`):settle(-bet,head+`You lose $${bet}.`);
+});
+
+/* ---------- Blackjack ---------- */
+function bjValue(hand){
+  let total=0,aces=0;
+  for(const c of hand){ if(c.r==="A"){total+=11;aces++;} else if("JQK".includes(c.r)) total+=10; else total+=Number(c.r); }
+  while(total>21&&aces){total-=10;aces--;}
+  return total;
+}
+const bj={};
+function bjRender(reveal){
+  $("bj-player").replaceChildren(...bj.player.map(c=>cardEl(c)));
+  $("bj-dealer").replaceChildren(...bj.dealer.map((c,i)=>cardEl(reveal||i===0?c:null)));
+  $("bj-pv").textContent="· "+bjValue(bj.player);
+  $("bj-dv").textContent=reveal?"· "+bjValue(bj.dealer):"";
+}
+function bjEnd(delta,text){
+  bjRender(true);
+  $("bj-deal").disabled=false; $("bj-hit").disabled=$("bj-stand").disabled=true;
+  lock(false); settle(delta,text);
+}
+$("bj-deal").onclick=()=>{
+  const bet=getBet(); if(bet===null) return;
+  bj.bet=bet; bj.deck=newDeck();
+  bj.player=[bj.deck.pop(),bj.deck.pop()]; bj.dealer=[bj.deck.pop(),bj.deck.pop()];
+  lock(true); bjRender(false);
+  if(bjValue(bj.player)===21){
+    if(bjValue(bj.dealer)===21) return bjEnd(0,"Both have Blackjack. Push!");
+    const win=Math.floor(bet*1.5); return bjEnd(win,`Blackjack! You win $${win}!`);
+  }
+  $("bj-deal").disabled=true; $("bj-hit").disabled=$("bj-stand").disabled=false;
+  say(`You bet $${bet}. Hit or stand?`);
+};
+$("bj-hit").onclick=()=>{
+  bj.player.push(bj.deck.pop()); bjRender(false);
+  const v=bjValue(bj.player);
+  if(v>21) bjEnd(-bj.bet,`Bust! You lose $${bj.bet}.`);
+  else if(v===21) $("bj-stand").onclick();
+};
+$("bj-stand").onclick=()=>{
+  while(bjValue(bj.dealer)<17) bj.dealer.push(bj.deck.pop());
+  const p=bjValue(bj.player), d=bjValue(bj.dealer);
+  if(d>21||p>d) bjEnd(bj.bet,`You win $${bj.bet}!`);
+  else if(p<d) bjEnd(-bj.bet,`Dealer wins. You lose $${bj.bet}.`);
+  else bjEnd(0,"Push! Your bet is returned.");
+};
+
+/* ---------- initial state ---------- */
+slots($("pk-dealer"),5); slots($("pk-player"),5);
+slots($("bj-dealer"),2); slots($("bj-player"),2);
+show();
+</script>
+</body>
+</html>
